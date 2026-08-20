@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShutterQuote Pro – Quotation Wizard</title>
+
+  <!-- Bootstrap 5.3 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <!-- jsPDF + html2canvas for PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    :root {
+      --brand-primary: #1a3c5e;
+      --brand-accent:  #e07b2a;
+      --brand-light:   #f0f6ff;
+      --brand-muted:   #6c7a8d;
+      --step-done:     #198754;
+      --step-active:   #1a3c5e;
+      --step-idle:     #dee2e6;
+    }
+
+    body {
+      background: linear-gradient(135deg, #eef3fb 0%, #f8f9fc 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      background: var(--brand-primary);
+      padding: 0.75rem 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    .topbar .brand { color:#fff; font-size:1.4rem; font-weight:700; letter-spacing:.5px; }
+    .topbar .brand span { color: var(--brand-accent); }
+
+    /* ── Wizard Card ── */
+    .wizard-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(26,60,94,.10);
+      overflow: hidden;
+    }
+
+    /* ── Step Progress ── */
+    .step-header {
+      background: var(--brand-primary);
+      padding: 1.5rem 2rem 0;
+    }
+    .steps-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0;
+      padding-bottom: 0;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+      cursor: pointer;
+    }
+    .step-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: calc(50% + 18px);
+      width: calc(100% - 36px);
+      height: 3px;
+      background: rgba(255,255,255,.25);
+      transition: background .3s;
+    }
+    .step-item.done:not(:last-child)::after { background: var(--brand-accent); }
+    .step-circle {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.7);
+      font-weight: 700;
+      font-size: .9rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .3s;
+      position: relative; z-index:1;
+    }
+    .step-item.active .step-circle {
+      background: var(--brand-accent);
+      border-color: var(--brand-accent);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(224,123,42,.3);
+    }
+    .step-item.done .step-circle {
+      background: var(--step-done);
+      border-color: var(--step-done);
+      color: #fff;
+    }
+    .step-label {
+      font-size: .7rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.55);
+      margin-top: 6px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .step-item.active .step-label { color: #fff; }
+    .step-item.done  .step-label  { color: rgba(255,255,255,.8); }
+
+    /* ── Step Title Banner ── */
+    .step-title-bar {
+      background: linear-gradient(90deg, var(--brand-primary) 0%, #254d7a 100%);
+      color: #fff;
+      padding: .75rem 2rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex; align-items: center; gap: .6rem;
+    }
+    .step-title-bar i { color: var(--brand-accent); font-size: 1.25rem; }
+
+    /* ── Form Area ── */
+    .wizard-body { padding: 2rem; }
+
+    /* ── Map ── */
+    #map {
+      height: 340px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      overflow: hidden;
+    }
+    .map-coords {
+      background: var(--brand-light);
+      border-radius: 8px;
+      padding: .6rem 1rem;
+      font-size: .85rem;
+      color: var(--brand-primary);
+      font-weight: 600;
+      display: flex; gap: 1.5rem;
+    }
+    .map-coords span { display:flex; align-items:center; gap:.4rem; }
+
+    /* ── Opening Cards ── */
+    .opening-card {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fafcff;
+      transition: box-shadow .2s;
+    }
+    .opening-card:hover { box-shadow: 0 4px 16px rgba(26,60,94,.08); }
+    .opening-card .card-head {
+      background: linear-gradient(90deg, var(--brand-primary) 0%, #254d7a 100%);
+      color: #fff;
+      border-radius: 10px 10px 0 0;
+      padding: .6rem 1rem;
+      font-weight: 600;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .badge-calc {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: .78rem;
+    }
+
+    /* ── Stat Boxes ── */
+    .stat-box {
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: .7rem 1rem;
+      text-align: center;
+    }
+    .stat-box .stat-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--brand-primary);
+    }
+    .stat-box .stat-lbl {
+      font-size: .72rem;
+      color: var(--brand-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    /* ── Price Badge ── */
+    .price-badge {
+      background: linear-gradient(135deg, var(--brand-accent), #c96a1a);
+      color: #fff;
+      border-radius: 8px;
+      padding: .4rem .9rem;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    /* ── Total Bar ── */
+    .total-bar {
+      background: linear-gradient(90deg, var(--brand-primary), #254d7a);
+      color: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      display: flex; align-items:center; justify-content:space-between;
+    }
+    .total-bar .lbl { font-size: .85rem; opacity: .8; }
+    .total-bar .val { font-size: 1.5rem; font-weight:800; color: var(--brand-accent); }
+
+    /* ── Motor / Controller Select ── */
+    .motor-option {
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: .6rem .9rem;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: .88rem;
+    }
+    .motor-option:hover { border-color: var(--brand-accent); background: #fff8f0; }
+    .motor-option.selected { border-color: var(--brand-accent); background: #fff4e8; }
+    .motor-option .mo-name { font-weight:700; color: var(--brand-primary); }
+    .motor-option .mo-detail { font-size:.77rem; color:var(--brand-muted); }
+    .motor-option .mo-price { font-weight:800; color:var(--brand-accent); }
+    .motor-none {
+      border: 2px dashed #e2e8f0;
+      border-radius: 10px;
+      padding: .5rem .9rem;
+      cursor: pointer;
+      font-size: .85rem;
+      color: var(--brand-muted);
+      transition: all .2s;
+    }
+    .motor-none:hover, .motor-none.selected {
+      border-color: #adb5bd;
+      background: #f8f9fa;
+      color: #495057;
+    }
+
+    /* ── Summary ── */
+    .summary-section { border-radius:12px; border:1.5px solid #e2e8f0; overflow:hidden; }
+    .summary-section .sec-head {
+      background: var(--brand-light);
+      padding: .6rem 1rem;
+      font-weight: 700;
+      font-size: .85rem;
+      color: var(--brand-primary);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .summary-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: .5rem 1rem;
+      border-bottom: 1px solid #f0f4f8;
+      font-size: .88rem;
+    }
+    .summary-row:last-child { border-bottom:none; }
+    .summary-row .sr-label { color: var(--brand-muted); }
+    .summary-row .sr-value { font-weight:600; color: var(--brand-primary); }
+
+    /* ── Gemini Result ── */
+    #geminiResult {
+      background: linear-gradient(135deg, #f0f6ff, #e8f4ff);
+      border: 1.5px solid #b3d1f5;
+      border-radius: 12px;
+      padding: 1.5rem;
+      white-space: pre-wrap;
+      font-size: .9rem;
+      color: #1a3c5e;
+      line-height: 1.7;
+      max-height: 420px;
+      overflow-y: auto;
+      display:none;
+    }
+    #geminiResult.active { display:block; }
+
+    /* ── PDF Target ── */
+    #pdfContent {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 2rem;
+      background: #fff;
+      color: #1a3c5e;
+    }
+    #pdfContent .pdf-header {
+      background: linear-gradient(90deg, #1a3c5e, #254d7a);
+      color:#fff;
+      padding: 1.5rem 2rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+    }
+    #pdfContent .pdf-header h2 { margin:0; font-size:1.5rem; }
+    #pdfContent .pdf-header p  { margin:0; opacity:.8; font-size:.85rem; }
+    #pdfContent table { width:100%; border-collapse:collapse; margin-bottom:1.5rem; font-size:.85rem; }
+    #pdfContent table th { background:#e8f0fb; color:#1a3c5e; padding:.5rem .8rem; text-align:left; font-weight:700; }
+    #pdfContent table td { padding:.45rem .8rem; border-bottom:1px solid #edf2f7; }
+    #pdfContent .pdf-total { background:#1a3c5e; color:#fff; padding:1rem 1.5rem; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+    #pdfContent .pdf-total span:last-child { font-size:1.4rem; font-weight:800; color:#e07b2a; }
+    #pdfContent .pdf-ai { background:#f0f6ff; border:1.5px solid #b3d1f5; border-radius:8px; padding:1rem; font-size:.85rem; white-space:pre-wrap; line-height:1.7; }
+
+    /* ── Buttons ── */
+    .btn-brand {
+      background: var(--brand-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: .55rem 1.4rem;
+      font-weight: 600;
+      transition: all .2s;
+    }
+    .btn-brand:hover { background: #254d7a; color:#fff; }
+    .btn-accent {
+      background: var(--brand-accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: .55rem 1.4rem;
+      font-weight: 600;
+      transition: all .2s;
+    }
+    .btn-accent:hover { background: #c96a1a; color:#fff; }
+
+    /* Navigation */
+    .wizard-footer {
+      padding: 1.25rem 2rem;
+      background: #f8fafc;
+      border-top: 1px solid #e9ecef;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Responsive */
+    @media (max-width: 576px) {
+      .step-label { display:none; }
+      .wizard-body { padding: 1rem; }
+      .wizard-footer { padding: 1rem; }
+    }
+
+    /* Spinner overlay */
+    .spinner-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      display:flex; align-items:center; justify-content:center;
+      z-index:9999; display:none;
+    }
+    .spinner-overlay.active { display:flex; }
+    .spinner-box {
+      background:#fff; border-radius:16px; padding:2.5rem 3rem;
+      text-align:center; box-shadow:0 8px 40px rgba(0,0,0,.2);
+    }
+    .spinner-box p { margin-top:.8rem; font-weight:600; color:var(--brand-primary); }
+
+    /* Map placeholder */
+    .map-placeholder {
+      height:340px; border-radius:12px; border:2px dashed #b3d1f5;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      background: var(--brand-light); color: var(--brand-muted);
+    }
+    .map-placeholder i { font-size:3rem; color:#b3d1f5; }
+
+    /* Input labels */
+    label.form-label { font-weight:600; font-size:.88rem; color: var(--brand-primary); }
+
+    /* Hero section */
+    .hero-strip {
+      background: linear-gradient(90deg, var(--brand-primary) 0%, #254d7a 60%, #e07b2a 100%);
+      padding: .4rem 2rem;
+      font-size: .8rem;
+      color: rgba(255,255,255,.8);
+      letter-spacing:.3px;
+    }
+
+    /* Controller badge */
+    .ctrl-badge {
+      display:inline-flex; align-items:center; gap:.3rem;
+      background: #e8f4ff; color: var(--brand-primary);
+      border: 1px solid #b3d1f5; border-radius:20px;
+      padding: 2px 10px; font-size:.78rem; font-weight:600;
+    }
+
+    /* Validity feedback */
+    .was-validated .form-control:invalid { border-color: #dc3545; }
+
+    /* Animate step panels */
+    .step-panel { animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+  </style>
+</head>
+<body>
+
+<!-- Spinner Overlay -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner-box">
+    <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
+    <p id="spinnerMsg">Generating with Gemini AI…</p>
+  </div>
+</div>
+
+<!-- Top Bar -->
+<div class="topbar d-flex align-items-center justify-content-between">
+  <div class="brand"><i class="bi bi-shield-shaded me-2"></i>Shutter<span>Quote</span> Pro</div>
+  <div class="d-flex align-items-center gap-3">
+    <span class="badge" style="background:rgba(255,255,255,.15);color:#fff;font-size:.8rem;">
+      <i class="bi bi-person-circle me-1"></i>Sales Portal
+    </span>
+    <span class="badge" style="background:var(--brand-accent);font-size:.8rem;">
+      <i class="bi bi-file-earmark-text me-1"></i>New Quotation
+    </span>
+  </div>
+</div>
+<div class="hero-strip">
+  <i class="bi bi-stars me-1"></i>
+  Powered by Google Gemini AI &nbsp;|&nbsp;
+  <i class="bi bi-geo-alt me-1"></i> Google Maps Integration &nbsp;|&nbsp;
+  <i class="bi bi-filetype-pdf me-1"></i> Auto PDF Generation
+</div>
+
+<!-- Main Content -->
+<div class="container py-4" style="max-width:860px;">
+  <div class="wizard-card">
+
+    <!-- Step Header -->
+    <div class="step-header">
+      <div class="steps-bar" id="stepsBar">
+        <!-- JS-rendered -->
+      </div>
+      <div style="height:1.2rem;"></div>
+    </div>
+
+    <!-- Step Title -->
+    <div class="step-title-bar" id="stepTitleBar">
+      <!-- JS-rendered -->
+    </div>
+
+    <!-- Body panels -->
+    <div class="wizard-body">
+
+      <!-- ══════════════ STEP 1 – Client Info ══════════════ -->
+      <div class="step-panel" id="panel-0">
+        <p class="text-muted mb-3" style="font-size:.9rem;">
+          <i class="bi bi-info-circle me-1"></i>Enter the client's details and pin their location on the map.
+        </p>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Client Name *</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-person"></i></span>
+              <input type="text" id="clientName" class="form-control" placeholder="e.g. Ahmed Al-Rashidi" value="Ahmed Al-Rashidi" />
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Email Address *</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input type="email" id="clientEmail" class="form-control" placeholder="email@example.com" value="ahmed@example.com" />
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Phone Number *</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+              <input type="text" id="clientPhone" class="form-control" placeholder="+966 5x xxx xxxx" value="+966 50 123 4567" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Map -->
+        <div class="mb-2 d-flex align-items-center justify-content-between">
+          <label class="form-label mb-0"><i class="bi bi-geo-alt me-1"></i>Client Location (drop pin on map)</label>
+          <button class="btn btn-sm btn-brand" onclick="useCurrentLocation()">
+            <i class="bi bi-crosshair2 me-1"></i>Use My Location
+          </button>
+        </div>
+        <div id="map" class="mb-2"></div>
+        <div class="map-coords" id="coordsDisplay">
+          <span><i class="bi bi-geo"></i> Lat: <span id="dispLat">—</span></span>
+          <span><i class="bi bi-geo"></i> Lng: <span id="dispLng">—</span></span>
+          <span id="dispAddr" class="ms-auto text-truncate" style="max-width:340px;"></span>
+        </div>
+        <div id="mapFallback" class="map-placeholder d-none">
+          <i class="bi bi-map"></i>
+          <p class="mt-2 mb-1 fw-bold">Map unavailable (No API Key)</p>
+          <p style="font-size:.82rem;">Enter coordinates manually below.</p>
+          <div class="d-flex gap-2 mt-2">
+            <input type="number" id="manualLat" class="form-control form-control-sm" placeholder="Latitude" style="width:140px;" oninput="manualCoord()" />
+            <input type="number" id="manualLng" class="form-control form-control-sm" placeholder="Longitude" style="width:140px;" oninput="manualCoord()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════ STEP 2 – Shutter Details ══════════════ -->
+      <div class="step-panel d-none" id="panel-1">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <p class="text-muted mb-0" style="font-size:.9rem;">
+            <i class="bi bi-info-circle me-1"></i>Add shutter openings. Area, weight and price are auto-calculated.
+          </p>
+          <button class="btn btn-sm btn-accent" onclick="addOpening()">
+            <i class="bi bi-plus-circle me-1"></i>Add Opening
+          </button>
+        </div>
+        <div id="openingsList"></div>
+        <div class="total-bar mt-3" id="shutterTotalBar">
+          <div>
+            <div class="lbl">SHUTTER SUBTOTAL</div>
+            <div style="font-size:.8rem;opacity:.7;" id="shutterCount">0 openings</div>
+          </div>
+          <div class="val" id="shutterTotalVal">SAR 0.00</div>
+        </div>
+      </div>
+
+      <!-- ══════════════ STEP 3 – Motor Selection ══════════════ -->
+      <div class="step-panel d-none" id="panel-2">
+        <p class="text-muted mb-3" style="font-size:.9rem;">
+          <i class="bi bi-info-circle me-1"></i>Select a motor for each opening based on the required torque. Suitable motors are pre-filtered.
+        </p>
+        <div id="motorList"></div>
+        <div class="total-bar mt-3">
+          <div>
+            <div class="lbl">MOTORS SUBTOTAL</div>
+            <div style="font-size:.8rem;opacity:.7;">Selected motors only</div>
+          </div>
+          <div class="val" id="motorTotalVal">SAR 0.00</div>
+        </div>
+      </div>
+
+      <!-- ══════════════ STEP 4 – Controller Selection ══════════════ -->
+      <div class="step-panel d-none" id="panel-3">
+        <p class="text-muted mb-3" style="font-size:.9rem;">
+          <i class="bi bi-info-circle me-1"></i>Optionally add a controller for each motorised opening.
+        </p>
+        <div id="controllerList"></div>
+        <div class="total-bar mt-3">
+          <div>
+            <div class="lbl">CONTROLLERS SUBTOTAL</div>
+            <div style="font-size:.8rem;opacity:.7;">Selected controllers only</div>
+          </div>
+          <div class="val" id="ctrlTotalVal">SAR 0.00</div>
+        </div>
+      </div>
+
+      <!-- ══════════════ STEP 5 – Summary ══════════════ -->
+      <div class="step-panel d-none" id="panel-4">
+        <div id="summaryContent"></div>
+
+        <!-- Notes -->
+        <div class="mt-3">
+          <label class="form-label"><i class="bi bi-pencil-square me-1"></i>Optional Notes</label>
+          <textarea id="quoteNotes" class="form-control" rows="3" placeholder="Add any special instructions, terms, or remarks…"></textarea>
+        </div>
+
+        <!-- Grand Total -->
+        <div class="total-bar mt-3" id="grandTotalBar">
+          <div>
+            <div class="lbl">GRAND TOTAL (VAT Excl.)</div>
+            <div style="font-size:.8rem;opacity:.7;">Shutters + Motors + Controllers</div>
+          </div>
+          <div class="val" id="grandTotalVal">SAR 0.00</div>
+        </div>
+
+        <!-- Gemini Button -->
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <button class="btn btn-accent flex-grow-1" onclick="generateGemini()">
+            <i class="bi bi-stars me-2"></i>Generate with Gemini AI
+          </button>
+          <button class="btn btn-brand flex-grow-1" onclick="downloadPDF()" id="btnPDF" disabled>
+            <i class="bi bi-filetype-pdf me-2"></i>Download PDF Quotation
+          </button>
+        </div>
+
+        <!-- Gemini Output -->
+        <div class="mt-3" id="geminiResult"></div>
+      </div>
+
+    </div><!-- /wizard-body -->
+
+    <!-- Footer Nav -->
+    <div class="wizard-footer">
+      <button class="btn btn-outline-secondary" id="btnBack" onclick="prevStep()">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </button>
+      <div class="text-muted" style="font-size:.82rem;" id="stepIndicatorText"></div>
+      <button class="btn btn-brand px-4" id="btnNext" onclick="nextStep()">
+        Next <i class="bi bi-arrow-right ms-1"></i>
+      </button>
+    </div>
+
+  </div><!-- /wizard-card -->
+</div><!-- /container -->
+
+<!-- Hidden PDF content -->
+<div id="pdfContent" style="position:absolute;left:-9999px;top:-9999px;width:900px;"></div>
+
+<!-- Google Maps -->
+<script>
+  // ── CONFIG ──────────────────────────────────────────────
+  // Paste your Google Maps API key and Gemini API key here (or leave blank for demo mode)
+  const GOOGLE_MAPS_API_KEY = '';   // e.g. 'AIzaSy...'
+  const GEMINI_API_KEY      = '';   // e.g. 'AIzaSy...'
+
+  // ── DUMMY DATA ──────────────────────────────────────────
+  const SHUTTER_TYPES = [
+    { id:'s1', name:'Aluminium Roll-Up',      pricePerM2: 380,  densityKgM2: 6.5  },
+    { id:'s2', name:'PVC Insulated Roll-Up',  pricePerM2: 290,  densityKgM2: 4.8  },
+    { id:'s3', name:'Steel Security Shutter', pricePerM2: 520,  densityKgM2: 9.2  },
+    { id:'s4', name:'Perforated Aluminium',   pricePerM2: 450,  densityKgM2: 7.1  },
+    { id:'s5', name:'Transparent Polycarbonate', pricePerM2: 610, densityKgM2: 3.9 },
+    { id:'s6', name:'Timber Venetian',        pricePerM2: 720,  densityKgM2: 8.0  },
+  ];
+
+  const MOTORS = [
+    { id:'m1', name:'Somfy LT50',    brand:'Somfy',   maxKg: 50,  torqueNm: 10, price: 880,  power:'10 Nm / 50 kg' },
+    { id:'m2', name:'Somfy LT60',    brand:'Somfy',   maxKg: 100, torqueNm: 20, price: 1250, power:'20 Nm / 100 kg' },
+    { id:'m3', name:'Somfy LT80',    brand:'Somfy',   maxKg: 160, torqueNm: 40, price: 1680, power:'40 Nm / 160 kg' },
+    { id:'m4', name:'Nice M1-100',   brand:'Nice',    maxKg: 80,  torqueNm: 15, price: 720,  power:'15 Nm / 80 kg' },
+    { id:'m5', name:'Nice Era M',    brand:'Nice',    maxKg: 120, torqueNm: 25, price: 1100, power:'25 Nm / 120 kg' },
+    { id:'m6', name:'Becker AC68',   brand:'Becker',  maxKg: 60,  torqueNm: 12, price: 960,  power:'12 Nm / 60 kg' },
+    { id:'m7', name:'Becker AC120',  brand:'Becker',  maxKg: 150, torqueNm: 30, price: 1480, power:'30 Nm / 150 kg' },
+    { id:'m8', name:'Elero Smart 45',brand:'Elero',   maxKg: 45,  torqueNm: 8,  price: 640,  power:'8 Nm / 45 kg'  },
+    { id:'m9', name:'Elero Smart 100',brand:'Elero',  maxKg: 110, torqueNm: 22, price: 1050, power:'22 Nm / 110 kg'},
+  ];
+
+  const CONTROLLERS = [
+    { id:'c0', name:'None (Manual)',          price: 0,    type:'none',    desc:'' },
+    { id:'c1', name:'Single Channel Remote',  price: 280,  type:'remote',  desc:'1-ch RF 433 MHz, 30 m range' },
+    { id:'c2', name:'Multi-Channel Remote',   price: 450,  type:'remote',  desc:'5-ch RF 433 MHz, group control' },
+    { id:'c3', name:'Smart Wi-Fi Module',     price: 890,  type:'wifi',    desc:'App control, schedules, voice (Alexa/Google)' },
+    { id:'c4', name:'Timer Switch + Remote',  price: 620,  type:'timer',   desc:'Weekly timer + RF remote bundled' },
+    { id:'c5', name:'KNX Building Module',    price: 1850, type:'bus',     desc:'KNX bus integration, central control' },
+  ];
+
+  // ── STATE ────────────────────────────────────────────────
+  let currentStep = 0;
+  let mapInstance = null, marker = null;
+  let clientLat = null, clientLng = null, clientAddress = '';
+  let openings = [];      // [{id, type, width, height, area, weight, price, motorId, controllerId}]
+  let geminiText = '';
+
+  const STEPS = [
+    { label:'Client Info',   icon:'bi-person-lines-fill' },
+    { label:'Shutters',      icon:'bi-grid-3x3-gap-fill' },
+    { label:'Motors',        icon:'bi-gear-wide-connected' },
+    { label:'Controllers',   icon:'bi-wifi' },
+    { label:'Summary',       icon:'bi-clipboard2-check-fill' },
+  ];
+
+  // ── INIT ─────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    renderStepsBar();
+    updateStepUI();
+    initOpenings(); // pre-load 2 sample openings
+  });
+
+  function initOpenings() {
+    openings = [
+      { id:1, typeId:'s1', width:200, height:220, area:0, weight:0, price:0, motorId:null, controllerId:'c0' },
+      { id:2, typeId:'s2', width:150, height:200, area:0, weight:0, price:0, motorId:null, controllerId:'c0' },
+    ];
+    openings.forEach(calcOpening);
+    renderOpenings();
+  }
+
+  // ── STEP BAR ─────────────────────────────────────────────
+  function renderStepsBar() {
+    const bar = document.getElementById('stepsBar');
+    bar.innerHTML = STEPS.map((s,i) => {
+      const cls = i < currentStep ? 'done' : (i === currentStep ? 'active' : '');
+      const icon = i < currentStep ? '<i class="bi bi-check-lg"></i>' : (i+1);
+      return `<div class="step-item ${cls}" onclick="jumpToStep(${i})">
+        <div class="step-circle">${icon}</div>
+        <div class="step-label">${s.label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function updateStepUI() {
+    renderStepsBar();
+    // panels
+    STEPS.forEach((_,i) => {
+      document.getElementById(`panel-${i}`).classList.toggle('d-none', i !== currentStep);
+    });
+    // title bar
+    const s = STEPS[currentStep];
+    document.getElementById('stepTitleBar').innerHTML =
+      `<i class="bi ${s.icon}"></i> Step ${currentStep+1} of ${STEPS.length} — ${s.label}`;
+    // footer
+    document.getElementById('btnBack').disabled = currentStep === 0;
+    const isLast = currentStep === STEPS.length - 1;
+    const btnNext = document.getElementById('btnNext');
+    btnNext.innerHTML = isLast
+      ? '<i class="bi bi-check-circle me-1"></i>Finish'
+      : 'Next <i class="bi bi-arrow-right ms-1"></i>';
+    btnNext.classList.toggle('btn-accent', isLast);
+    btnNext.classList.toggle('btn-brand', !isLast);
+    document.getElementById('stepIndicatorText').textContent = `Step ${currentStep+1} / ${STEPS.length}`;
+    // step-specific render
+    if (currentStep === 2) renderMotors();
+    if (currentStep === 3) renderControllers();
+    if (currentStep === 4) renderSummary();
+  }
+
+  function jumpToStep(i) {
+    if (i <= currentStep) { currentStep = i; updateStepUI(); }
+  }
+  function prevStep() { if (currentStep > 0) { currentStep--; updateStepUI(); } }
+  function nextStep() {
+    if (!validateStep()) return;
+    if (currentStep < STEPS.length - 1) { currentStep++; updateStepUI(); }
+  }
+
+  function validateStep() {
+    if (currentStep === 0) {
+      const name  = document.getElementById('clientName').value.trim();
+      const email = document.getElementById('clientEmail').value.trim();
+      const phone = document.getElementById('clientPhone').value.trim();
+      if (!name || !email || !phone) {
+        showAlert('Please fill in all client details.', 'warning'); return false;
+      }
+    }
+    if (currentStep === 1) {
+      if (openings.length === 0) { showAlert('Add at least one shutter opening.', 'warning'); return false; }
+    }
+    return true;
+  }
+
+  // ── ALERT ────────────────────────────────────────────────
+  function showAlert(msg, type='danger') {
+    const el = document.createElement('div');
+    el.className = `alert alert-${type} alert-dismissible fade show position-fixed bottom-0 end-0 m-3`;
+    el.style.zIndex = 9998;
+    el.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  STEP 1 – MAP
+  // ═══════════════════════════════════════════════════════════
+  window.initMap = function() {
+    const defaultPos = { lat: 24.7136, lng: 46.6753 }; // Riyadh
+    mapInstance = new google.maps.Map(document.getElementById('map'), {
+      zoom: 12,
+      center: defaultPos,
+      mapTypeId: 'roadmap',
+      styles: [
+        { featureType:'water',     elementType:'geometry', stylers:[{color:'#c9d9e8'}] },
+        { featureType:'landscape', elementType:'geometry', stylers:[{color:'#f5f5f0'}] },
+      ]
+    });
+    marker = new google.maps.Marker({
+      position: defaultPos,
+      map: mapInstance,
+      draggable: true,
+      animation: google.maps.Animation.DROP,
+      title: 'Client Location',
+    });
+    setCoords(defaultPos.lat, defaultPos.lng);
+
+    // Click on map to move marker
+    mapInstance.addListener('click', e => {
+      marker.setPosition(e.latLng);
+      setCoords(e.latLng.lat(), e.latLng.lng());
+    });
+    // Drag marker
+    marker.addListener('dragend', () => {
+      const pos = marker.getPosition();
+      setCoords(pos.lat(), pos.lng());
+    });
+  };
+
+  function setCoords(lat, lng) {
+    clientLat = lat; clientLng = lng;
+    document.getElementById('dispLat').textContent = lat.toFixed(6);
+    document.getElementById('dispLng').textContent = lng.toFixed(6);
+    reverseGeocode(lat, lng);
+  }
+
+  function reverseGeocode(lat, lng) {
+    if (!window.google) return;
+    const gc = new google.maps.Geocoder();
+    gc.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        clientAddress = results[0].formatted_address;
+        document.getElementById('dispAddr').textContent = '📍 ' + clientAddress;
+      }
+    });
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) { showAlert('Geolocation not supported.', 'warning'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (mapInstance && marker) {
+        const ll = new google.maps.LatLng(lat, lng);
+        marker.setPosition(ll);
+        mapInstance.panTo(ll);
+        mapInstance.setZoom(15);
+      }
+      setCoords(lat, lng);
+    }, () => showAlert('Unable to retrieve location.','warning'));
+  }
+
+  function manualCoord() {
+    const lat = parseFloat(document.getElementById('manualLat').value);
+    const lng = parseFloat(document.getElementById('manualLng').value);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      clientLat = lat; clientLng = lng;
+      document.getElementById('dispLat').textContent = lat.toFixed(6);
+      document.getElementById('dispLng').textContent = lng.toFixed(6);
+    }
+  }
+
+  // Load Google Maps or show fallback
+  function loadGoogleMaps() {
+    if (GOOGLE_MAPS_API_KEY) {
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
+      s.async = true; s.defer = true;
+      document.head.appendChild(s);
+    } else {
+      // Demo mode: use OpenStreetMap via Leaflet
+      loadLeafletMap();
+    }
+  }
+
+  function loadLeafletMap() {
+    // Load Leaflet CSS
+    const link = document.createElement('link');
+    link.rel='stylesheet';
+    link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    // Load Leaflet JS
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = () => {
+      const defaultPos = [24.7136, 46.6753];
+      mapInstance = L.map('map').setView(defaultPos, 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstance);
+
+      const customIcon = L.divIcon({
+        html: '<div style="background:#e07b2a;width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #1a3c5e;box-shadow:0 2px 8px rgba(0,0,0,.4);"></div>',
+        iconSize:[24,24], iconAnchor:[12,24]
+      });
+      marker = L.marker(defaultPos, { draggable: true, icon: customIcon }).addTo(mapInstance);
+      setLeafletCoords(...defaultPos);
+
+      mapInstance.on('click', e => {
+        marker.setLatLng(e.latlng);
+        setLeafletCoords(e.latlng.lat, e.latlng.lng);
+      });
+      marker.on('dragend', e => {
+        const pos = e.target.getLatLng();
+        setLeafletCoords(pos.lat, pos.lng);
+      });
+    };
+    document.head.appendChild(s);
+  }
+
+  function setLeafletCoords(lat, lng) {
+    clientLat = lat; clientLng = lng;
+    document.getElementById('dispLat').textContent = lat.toFixed(6);
+    document.getElementById('dispLng').textContent = lng.toFixed(6);
+    // Try reverse geocode with Nominatim
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.display_name) {
+          clientAddress = d.display_name;
+          document.getElementById('dispAddr').textContent = '📍 ' + d.display_name.substring(0,60) + '…';
+        }
+      }).catch(()=>{});
+  }
+
+  window.useCurrentLocation = function() {
+    if (!navigator.geolocation) { showAlert('Geolocation not supported.','warning'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (mapInstance) {
+        if (window.google) {
+          const ll = new google.maps.LatLng(lat, lng);
+          marker.setPosition(ll);
+          mapInstance.panTo(ll);
+          mapInstance.setZoom(15);
+          setCoords(lat, lng);
+        } else if (mapInstance.setView) {
+          mapInstance.setView([lat, lng], 15);
+          marker.setLatLng([lat, lng]);
+          setLeafletCoords(lat, lng);
+        }
+      }
+    }, () => showAlert('Unable to retrieve location.','warning'));
+  };
+
+  loadGoogleMaps();
+
+  // ═══════════════════════════════════════════════════════════
+  //  STEP 2 – OPENINGS
+  // ═══════════════════════════════════════════════════════════
+  let nextOpeningId = 3;
+
+  function addOpening() {
+    openings.push({ id: nextOpeningId++, typeId:'s1', width:120, height:150, area:0, weight:0, price:0, motorId:null, controllerId:'c0' });
+    calcOpening(openings[openings.length-1]);
+    renderOpenings();
+  }
+
+  function removeOpening(id) {
+    openings = openings.filter(o => o.id !== id);
+    renderOpenings();
+    updateShutterTotal();
+  }
+
+  function calcOpening(o) {
+    const t = SHUTTER_TYPES.find(t => t.id === o.typeId) || SHUTTER_TYPES[0];
+    o.area   = (o.width  / 100) * (o.height / 100);          // cm → m²
+    o.weight = Math.round(o.area * t.densityKgM2 * 10) / 10;
+    o.price  = Math.round(o.area * t.pricePerM2 * 100) / 100;
+  }
+
+  function renderOpenings() {
+    const list = document.getElementById('openingsList');
+    if (openings.length === 0) {
+      list.innerHTML = `<div class="text-center py-4 text-muted"><i class="bi bi-window-plus fs-2 d-block mb-2"></i>No openings yet. Click "Add Opening".</div>`;
+      updateShutterTotal(); return;
+    }
+    list.innerHTML = openings.map((o,idx) => {
+      const t = SHUTTER_TYPES.find(t => t.id === o.typeId) || SHUTTER_TYPES[0];
+      const typeOptions = SHUTTER_TYPES.map(st =>
+        `<option value="${st.id}" ${st.id===o.typeId?'selected':''}>${st.name} — SAR ${st.pricePerM2}/m²</option>`
+      ).join('');
+      return `
+      <div class="opening-card mb-3" id="oc-${o.id}">
+        <div class="card-head">
+          <span><i class="bi bi-window me-2"></i>Opening #${idx+1}</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge-calc"><i class="bi bi-calculator me-1"></i>Auto-calculated</span>
+            <button class="btn btn-sm btn-close btn-close-white" onclick="removeOpening(${o.id})"></button>
+          </div>
+        </div>
+        <div class="p-3">
+          <div class="row g-2 mb-3">
+            <div class="col-12">
+              <label class="form-label">Shutter Type</label>
+              <select class="form-select" onchange="changeType(${o.id},this.value)">${typeOptions}</select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Width (cm)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" value="${o.width}" min="20" max="800"
+                  onchange="changeDim(${o.id},'width',this.value)" />
+                <span class="input-group-text">cm</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Height (cm)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" value="${o.height}" min="20" max="800"
+                  onchange="changeDim(${o.id},'height',this.value)" />
+                <span class="input-group-text">cm</span>
+              </div>
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-4">
+              <div class="stat-box">
+                <div class="stat-val">${o.area.toFixed(2)} m²</div>
+                <div class="stat-lbl">Area</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-box">
+                <div class="stat-val">${o.weight} kg</div>
+                <div class="stat-lbl">Weight</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-box">
+                <div class="stat-val price-badge" style="font-size:.85rem;">SAR ${o.price.toFixed(2)}</div>
+                <div class="stat-lbl">Shutter Price</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    updateShutterTotal();
+  }
+
+  function changeType(id, typeId) {
+    const o = openings.find(o => o.id === id);
+    if (o) { o.typeId = typeId; calcOpening(o); renderOpenings(); }
+  }
+  function changeDim(id, dim, val) {
+    const o = openings.find(o => o.id === id);
+    if (o) { o[dim] = parseFloat(val)||0; calcOpening(o); renderOpenings(); }
+  }
+
+  function updateShutterTotal() {
+    const total = openings.reduce((s,o) => s+o.price, 0);
+    document.getElementById('shutterTotalVal').textContent = `SAR ${total.toFixed(2)}`;
+    document.getElementById('shutterCount').textContent = `${openings.length} opening${openings.length!==1?'s':''}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  STEP 3 – MOTORS
+  // ═══════════════════════════════════════════════════════════
+  function renderMotors() {
+    const list = document.getElementById('motorList');
+    list.innerHTML = openings.map((o,idx) => {
+      // Pre-select smallest suitable motor if none selected
+      const suitable = MOTORS.filter(m => m.maxKg >= o.weight).sort((a,b) => a.maxKg - b.maxKg);
+      if (!o.motorId && suitable.length > 0) o.motorId = suitable[0].id;
+      const motorOptions = suitable.map(m => motorOptionHtml(m, o.motorId === m.id, o.id)).join('');
+      return `
+      <div class="opening-card mb-3">
+        <div class="card-head">
+          <span><i class="bi bi-window me-1"></i>Opening #${idx+1} — ${SHUTTER_TYPES.find(t=>t.id===o.typeId)?.name||''}</span>
+          <span class="badge-calc">Required ≥ ${o.weight} kg</span>
+        </div>
+        <div class="p-3">
+          <div class="row g-2 mb-2">
+            <div class="col-4"><div class="stat-box"><div class="stat-val">${o.area.toFixed(2)} m²</div><div class="stat-lbl">Area</div></div></div>
+            <div class="col-4"><div class="stat-box"><div class="stat-val">${o.weight} kg</div><div class="stat-lbl">Weight</div></div></div>
+            <div class="col-4"><div class="stat-box"><div class="stat-val">${suitable.length}</div><div class="stat-lbl">Suitable Motors</div></div></div>
+          </div>
+          <label class="form-label mt-1">Select Motor</label>
+          <div class="d-flex flex-column gap-2" id="motorOpts-${o.id}">
+            <div class="motor-none ${!o.motorId?'selected':''}" onclick="selectMotor(${o.id},null)">
+              <i class="bi bi-x-circle me-1"></i>No Motor (Manual Operation)
+            </div>
+            ${motorOptions}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    updateMotorTotal();
+  }
+
+  function motorOptionHtml(m, selected, openingId) {
+    return `<div class="motor-option ${selected?'selected':''}" onclick="selectMotor(${openingId},'${m.id}')">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="mo-name"><i class="bi bi-gear me-1"></i>${m.name}</div>
+          <div class="mo-detail">${m.brand} · ${m.power}</div>
+        </div>
+        <div class="mo-price">SAR ${m.price.toLocaleString()}</div>
+      </div>
+    </div>`;
+  }
+
+  function selectMotor(openingId, motorId) {
+    const o = openings.find(o => o.id === openingId);
+    if (o) { o.motorId = motorId; renderMotors(); }
+  }
+
+  function updateMotorTotal() {
+    const total = openings.reduce((s,o) => {
+      const m = MOTORS.find(m => m.id === o.motorId);
+      return s + (m ? m.price : 0);
+    }, 0);
+    document.getElementById('motorTotalVal').textContent = `SAR ${total.toFixed(2)}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  STEP 4 – CONTROLLERS
+  // ═══════════════════════════════════════════════════════════
+  function renderControllers() {
+    const motorised = openings.filter(o => o.motorId);
+    const list = document.getElementById('controllerList');
+    if (motorised.length === 0) {
+      list.innerHTML = `<div class="text-center py-4 text-muted"><i class="bi bi-wifi-off fs-2 d-block mb-2"></i>No motorised openings. Go back and select motors first.</div>`;
+      return;
+    }
+    list.innerHTML = motorised.map((o,idx) => {
+      if (!o.controllerId) o.controllerId = 'c0';
+      const ctrlOptions = CONTROLLERS.map(c => ctrlOptionHtml(c, o.controllerId === c.id, o.id)).join('');
+      return `
+      <div class="opening-card mb-3">
+        <div class="card-head">
+          <span><i class="bi bi-window me-1"></i>Opening #${openings.indexOf(o)+1} — Motor: ${MOTORS.find(m=>m.id===o.motorId)?.name||''}</span>
+          <span class="ctrl-badge"><i class="bi bi-gear-fill"></i>Motorised</span>
+        </div>
+        <div class="p-3">
+          <label class="form-label">Select Controller (optional)</label>
+          <div class="d-flex flex-column gap-2">${ctrlOptions}</div>
+        </div>
+      </div>`;
+    }).join('');
+    updateCtrlTotal();
+  }
+
+  function ctrlOptionHtml(c, selected, openingId) {
+    const icon = { none:'x-circle', remote:'broadcast-pin', wifi:'wifi', timer:'clock', bus:'diagram-3' }[c.type] || 'circle';
+    return `<div class="motor-option ${selected?'selected':''}" onclick="selectController(${openingId},'${c.id}')">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="mo-name"><i class="bi bi-${icon} me-1"></i>${c.name}</div>
+          ${c.desc ? `<div class="mo-detail">${c.desc}</div>` : ''}
+        </div>
+        <div class="mo-price">${c.price === 0 ? '<span class="text-muted fw-normal">—</span>' : `SAR ${c.price.toLocaleString()}`}</div>
+      </div>
+    </div>`;
+  }
+
+  function selectController(openingId, cId) {
+    const o = openings.find(o => o.id === openingId);
+    if (o) { o.controllerId = cId; renderControllers(); }
+  }
+
+  function updateCtrlTotal() {
+    const total = openings.reduce((s,o) => {
+      const c = CONTROLLERS.find(c => c.id === o.controllerId);
+      return s + (c ? c.price : 0);
+    }, 0);
+    document.getElementById('ctrlTotalVal').textContent = `SAR ${total.toFixed(2)}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  STEP 5 – SUMMARY
+  // ═══════════════════════════════════════════════════════════
+  function calcGrandTotal() {
+    const shutterTotal = openings.reduce((s,o) => s+o.price, 0);
+    const motorTotal   = openings.reduce((s,o) => { const m=MOTORS.find(m=>m.id===o.motorId); return s+(m?m.price:0); },0);
+    const ctrlTotal    = openings.reduce((s,o) => { const c=CONTROLLERS.find(c=>c.id===o.controllerId); return s+(c?c.price:0); },0);
+    return { shutterTotal, motorTotal, ctrlTotal, grand: shutterTotal+motorTotal+ctrlTotal };
+  }
+
+  function renderSummary() {
+    const { shutterTotal, motorTotal, ctrlTotal, grand } = calcGrandTotal();
+    // Client
+    const name  = document.getElementById('clientName').value;
+    const email = document.getElementById('clientEmail').value;
+    const phone = document.getElementById('clientPhone').value;
+
+    let html = `
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <div class="summary-section">
+          <div class="sec-head"><i class="bi bi-person me-1"></i>Client Information</div>
+          <div class="summary-row"><span class="sr-label">Name</span><span class="sr-value">${name}</span></div>
+          <div class="summary-row"><span class="sr-label">Email</span><span class="sr-value">${email}</span></div>
+          <div class="summary-row"><span class="sr-label">Phone</span><span class="sr-value">${phone}</span></div>
+          ${clientLat ? `<div class="summary-row"><span class="sr-label">Coordinates</span><span class="sr-value">${clientLat.toFixed(4)}, ${clientLng.toFixed(4)}</span></div>` : ''}
+          ${clientAddress ? `<div class="summary-row"><span class="sr-label">Address</span><span class="sr-value" style="font-size:.8rem;text-align:right;max-width:60%;">${clientAddress.substring(0,60)}…</span></div>` : ''}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="summary-section">
+          <div class="sec-head"><i class="bi bi-calculator me-1"></i>Price Breakdown</div>
+          <div class="summary-row"><span class="sr-label">Shutters (${openings.length} openings)</span><span class="sr-value">SAR ${shutterTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span class="sr-label">Motors</span><span class="sr-value">SAR ${motorTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span class="sr-label">Controllers</span><span class="sr-value">SAR ${ctrlTotal.toFixed(2)}</span></div>
+        </div>
+      </div>
+    </div>`;
+
+    // Openings detail
+    html += `<div class="summary-section mb-3">
+      <div class="sec-head"><i class="bi bi-list-ul me-1"></i>Opening Details</div>
+      ${openings.map((o,i) => {
+        const t = SHUTTER_TYPES.find(t=>t.id===o.typeId);
+        const m = MOTORS.find(m=>m.id===o.motorId);
+        const c = CONTROLLERS.find(c=>c.id===o.controllerId);
+        const lineTotal = o.price + (m?m.price:0) + (c?c.price:0);
+        return `<div class="summary-row flex-column align-items-start py-2 px-3" style="gap:.2rem;">
+          <div class="d-flex justify-content-between w-100">
+            <strong style="color:var(--brand-primary);">Opening #${i+1}</strong>
+            <span class="price-badge" style="font-size:.82rem;">SAR ${lineTotal.toFixed(2)}</span>
+          </div>
+          <div style="font-size:.82rem;color:var(--brand-muted);">
+            ${t?.name||''} &nbsp;|&nbsp; ${o.width}×${o.height} cm &nbsp;|&nbsp; ${o.area.toFixed(2)} m² &nbsp;|&nbsp; ${o.weight} kg
+          </div>
+          <div style="font-size:.8rem;color:var(--brand-muted);">
+            Motor: <strong style="color:var(--brand-primary);">${m?m.name:'None'}</strong>
+            &nbsp; Controller: <strong style="color:var(--brand-primary);">${c?c.name:'None'}</strong>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    document.getElementById('summaryContent').innerHTML = html;
+    document.getElementById('grandTotalVal').textContent = `SAR ${grand.toFixed(2)}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  GEMINI AI
+  // ═══════════════════════════════════════════════════════════
+  async function generateGemini() {
+    const { shutterTotal, motorTotal, ctrlTotal, grand } = calcGrandTotal();
+    const name  = document.getElementById('clientName').value;
+    const email = document.getElementById('clientEmail').value;
+    const phone = document.getElementById('clientPhone').value;
+    const notes = document.getElementById('quoteNotes').value;
+
+    const openingsSummary = openings.map((o,i) => {
+      const t = SHUTTER_TYPES.find(t=>t.id===o.typeId);
+      const m = MOTORS.find(m=>m.id===o.motorId);
+      const c = CONTROLLERS.find(c=>c.id===o.controllerId);
+      return `Opening ${i+1}: ${t?.name}, ${o.width}x${o.height}cm (${o.area.toFixed(2)} m², ${o.weight} kg) – Shutter: SAR ${o.price.toFixed(2)} | Motor: ${m?`${m.name} (SAR ${m.price})`:'None'} | Controller: ${c&&c.price>0?`${c.name} (SAR ${c.price})`:'None'}`;
+    }).join('\n');
+
+    const prompt = `You are a professional sales quotation writer for a premium shutter, motor and controller company. Write a polished, friendly, and professional quotation message for the following client:
+
+CLIENT DETAILS:
+- Name: ${name}
+- Email: ${email}
+- Phone: ${phone}
+- Location: ${clientAddress || (clientLat ? `Lat ${clientLat?.toFixed(4)}, Lng ${clientLng?.toFixed(4)}` : 'Not specified')}
+
+QUOTATION BREAKDOWN:
+${openingsSummary}
+
+FINANCIAL SUMMARY:
+- Shutter Total: SAR ${shutterTotal.toFixed(2)}
+- Motor Total:   SAR ${motorTotal.toFixed(2)}
+- Controller Total: SAR ${ctrlTotal.toFixed(2)}
+- GRAND TOTAL:   SAR ${grand.toFixed(2)}
+
+${notes ? `SPECIAL NOTES FROM SALESPERSON:\n${notes}` : ''}
+
+Please write:
+1. A warm personalized greeting
+2. A summary of what was selected and why it's a great choice
+3. The price breakdown in a clear, friendly way
+4. Expert suggestions to enhance their setup (e.g., smart home integration, warranty packages, maintenance plans)
+5. A professional closing with call to action
+6. Keep the tone professional yet warm, suitable for a high-end client in Saudi Arabia.`;
+
+    showSpinner('Generating professional quotation with Gemini AI…');
+    const resultEl = document.getElementById('geminiResult');
+    resultEl.classList.remove('active');
+    geminiText = '';
+
+    try {
+      let response;
+      if (GEMINI_API_KEY) {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.8, maxOutputTokens: 1200 }
+            })
+          }
+        );
+        const data = await response.json();
+        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          geminiText = data.candidates[0].content.parts[0].text;
+        } else if (data.error) {
+          throw new Error(data.error.message);
+        }
+      } else {
+        // Demo mode – simulate realistic output
+        await new Promise(r => setTimeout(r, 2000));
+        geminiText = generateDemoQuotation(name, email, phone, openingsSummary, shutterTotal, motorTotal, ctrlTotal, grand, notes);
+      }
+
+      resultEl.textContent = geminiText;
+      resultEl.classList.add('active');
+      document.getElementById('btnPDF').disabled = false;
+      showAlert('✅ Quotation generated successfully!', 'success');
+    } catch(err) {
+      showAlert(`Gemini error: ${err.message}`, 'danger');
+    } finally {
+      hideSpinner();
+    }
+  }
+
+  function generateDemoQuotation(name, email, phone, openingsSummary, shutterTotal, motorTotal, ctrlTotal, grand, notes) {
+    const date = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+    return `📋 PROFESSIONAL QUOTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date: ${date}
+Reference: SQP-${Date.now().toString().slice(-6)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dear ${name},
+
+Thank you for choosing ShutterQuote Pro for your shutter and automation needs. We are thrilled to present this personalized quotation crafted specifically for your property.
+
+After carefully reviewing your requirements, we have prepared a comprehensive solution that balances premium quality, functionality, and value — exactly what discerning clients like yourself deserve.
+
+🏠 YOUR SELECTED CONFIGURATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${openingsSummary}
+
+💰 INVESTMENT SUMMARY
+━━━━━━━━━━━━━━━━━━━━━
+• Shutter Systems:    SAR ${shutterTotal.toFixed(2)}
+• Motor Package:      SAR ${motorTotal.toFixed(2)}
+• Controller Suite:   SAR ${ctrlTotal.toFixed(2)}
+━━━━━━━━━━━━━━━━━━━━━
+  TOTAL (VAT Excl.):  SAR ${grand.toFixed(2)}
+
+⭐ WHY THIS IS A GREAT CHOICE FOR YOU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Premium-grade materials engineered for Saudi Arabia's climate
+✅ Motorised operation provides effortless daily convenience
+✅ Energy efficiency — reduce cooling costs by up to 30%
+✅ Enhanced security with robust locking mechanisms
+✅ Noise reduction and UV protection built in
+
+💡 OUR EXPERT RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Smart Home Upgrade: Consider adding our Wi-Fi Smart Module to enable voice control via Alexa or Google Home — an upgrade of just SAR 890 per opening that transforms your home experience.
+
+2. Annual Maintenance Plan: Our comprehensive maintenance package (SAR 1,200/year) ensures peak performance, covers all service visits, and extends motor warranty to 5 years.
+
+3. Sun Sensor Add-On: Automate your shutters based on sunlight intensity — they close automatically during peak heat hours, saving you energy year-round.
+
+4. Group Control System: Link all your shutters to a single control panel for whole-home management with one touch.
+
+${notes ? `📝 SPECIAL NOTES\n━━━━━━━━━━━━━━\n${notes}\n` : ''}
+
+📞 NEXT STEPS
+━━━━━━━━━━━━━
+To proceed, simply reply to this quotation or contact your dedicated sales representative. We offer a complimentary on-site measurement visit to confirm all dimensions before installation.
+
+This quotation is valid for 30 days from the date above.
+
+With warm regards,
+ShutterQuote Pro Sales Team
+📧 sales@shutterquote.pro | 📞 +966 11 XXX XXXX
+www.shutterquote.pro`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  PDF GENERATION
+  // ═══════════════════════════════════════════════════════════
+  async function downloadPDF() {
+    const { shutterTotal, motorTotal, ctrlTotal, grand } = calcGrandTotal();
+    const name  = document.getElementById('clientName').value;
+    const email = document.getElementById('clientEmail').value;
+    const phone = document.getElementById('clientPhone').value;
+    const date  = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+    const ref   = `SQP-${Date.now().toString().slice(-6)}`;
+
+    const pdfEl = document.getElementById('pdfContent');
+    pdfEl.innerHTML = `
+      <div class="pdf-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <h2>🏠 ShutterQuote Pro</h2>
+            <p>Professional Quotation &nbsp;|&nbsp; Ref: ${ref}</p>
+          </div>
+          <div style="text-align:right;font-size:.82rem;opacity:.8;">
+            <div>${date}</div>
+            <div>Valid for 30 days</div>
+          </div>
+        </div>
+      </div>
+
+      <table>
+        <tr>
+          <th colspan="2" style="background:#1a3c5e;color:#fff;font-size:.9rem;">Client Information</th>
+        </tr>
+        <tr><td>Name</td><td><strong>${name}</strong></td></tr>
+        <tr><td>Email</td><td>${email}</td></tr>
+        <tr><td>Phone</td><td>${phone}</td></tr>
+        ${clientLat ? `<tr><td>Location</td><td>${clientLat.toFixed(4)}, ${clientLng.toFixed(4)}</td></tr>` : ''}
+        ${clientAddress ? `<tr><td>Address</td><td>${clientAddress.substring(0,80)}</td></tr>` : ''}
+      </table>
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Shutter Type</th><th>Dimensions</th><th>Area</th><th>Weight</th>
+            <th>Motor</th><th>Controller</th><th style="text-align:right;">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${openings.map((o,i) => {
+            const t = SHUTTER_TYPES.find(t=>t.id===o.typeId);
+            const m = MOTORS.find(m=>m.id===o.motorId);
+            const c = CONTROLLERS.find(c=>c.id===o.controllerId);
+            const lineTotal = o.price + (m?m.price:0) + (c&&c.price?c.price:0);
+            return `<tr>
+              <td>${i+1}</td>
+              <td>${t?.name||''}</td>
+              <td>${o.width}×${o.height} cm</td>
+              <td>${o.area.toFixed(2)} m²</td>
+              <td>${o.weight} kg</td>
+              <td>${m?m.name:'None'}</td>
+              <td>${c&&c.price?c.name:'None'}</td>
+              <td style="text-align:right;font-weight:700;">SAR ${lineTotal.toFixed(2)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="background:#f0f4f8;">
+            <td colspan="7" style="text-align:right;font-weight:700;padding:.5rem .8rem;">Shutters Subtotal</td>
+            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">SAR ${shutterTotal.toFixed(2)}</td>
+          </tr>
+          <tr style="background:#f0f4f8;">
+            <td colspan="7" style="text-align:right;font-weight:700;padding:.5rem .8rem;">Motors Subtotal</td>
+            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">SAR ${motorTotal.toFixed(2)}</td>
+          </tr>
+          <tr style="background:#f0f4f8;">
+            <td colspan="7" style="text-align:right;font-weight:700;padding:.5rem .8rem;">Controllers Subtotal</td>
+            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">SAR ${ctrlTotal.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="pdf-total">
+        <span>GRAND TOTAL (VAT Exclusive)</span>
+        <span>SAR ${grand.toFixed(2)}</span>
+      </div>
+
+      ${geminiText ? `
+      <div style="margin-bottom:1rem;font-weight:700;color:#1a3c5e;font-size:.95rem;"><i>✨ AI-Generated Quotation Message</i></div>
+      <div class="pdf-ai">${geminiText}</div>
+      ` : ''}
+
+      <div style="margin-top:1.5rem;font-size:.75rem;color:#999;text-align:center;border-top:1px solid #edf2f7;padding-top:.8rem;">
+        This quotation was generated by ShutterQuote Pro · Valid for 30 days from ${date} · All prices in SAR (Saudi Riyal) · VAT not included
+      </div>
+    `;
+
+    showSpinner('Generating PDF…');
+    try {
+      await new Promise(r => setTimeout(r, 100));
+      const canvas = await html2canvas(pdfEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let heightLeft = imgH, position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+      while (heightLeft > 0) {
+        position = heightLeft - imgH;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+        heightLeft -= pageH;
+      }
+      pdf.save(`Quotation_${name.replace(/\s+/g,'_')}_${ref}.pdf`);
+      showAlert('✅ PDF downloaded successfully!', 'success');
+    } catch(e) {
+      showAlert('PDF generation failed: ' + e.message, 'danger');
+    } finally {
+      hideSpinner();
+    }
+  }
+
+  // ── SPINNER ──────────────────────────────────────────────
+  function showSpinner(msg='Loading…') {
+    document.getElementById('spinnerMsg').textContent = msg;
+    document.getElementById('spinnerOverlay').classList.add('active');
+  }
+  function hideSpinner() {
+    document.getElementById('spinnerOverlay').classList.remove('active');
+  }
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
