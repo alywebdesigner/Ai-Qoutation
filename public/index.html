@@ -505,7 +505,7 @@
             <div class="lbl">SHUTTER SUBTOTAL</div>
             <div style="font-size:.8rem;opacity:.7;" id="shutterCount">0 openings</div>
           </div>
-          <div class="val" id="shutterTotalVal">SAR 0.00</div>
+          <div class="val" id="shutterTotalVal">EGP 0.00</div>
         </div>
       </div>
 
@@ -520,7 +520,7 @@
             <div class="lbl">MOTORS SUBTOTAL</div>
             <div style="font-size:.8rem;opacity:.7;">Selected motors only</div>
           </div>
-          <div class="val" id="motorTotalVal">SAR 0.00</div>
+          <div class="val" id="motorTotalVal">EGP 0.00</div>
         </div>
       </div>
 
@@ -535,7 +535,7 @@
             <div class="lbl">CONTROLLERS SUBTOTAL</div>
             <div style="font-size:.8rem;opacity:.7;">Selected controllers only</div>
           </div>
-          <div class="val" id="ctrlTotalVal">SAR 0.00</div>
+          <div class="val" id="ctrlTotalVal">EGP 0.00</div>
         </div>
       </div>
 
@@ -555,7 +555,7 @@
             <div class="lbl">GRAND TOTAL (VAT Excl.)</div>
             <div style="font-size:.8rem;opacity:.7;">Shutters + Motors + Controllers</div>
           </div>
-          <div class="val" id="grandTotalVal">SAR 0.00</div>
+          <div class="val" id="grandTotalVal">EGP 0.00</div>
         </div>
 
         <!-- Gemini Button -->
@@ -596,7 +596,7 @@
   // ── CONFIG ──────────────────────────────────────────────
   // Paste your Google Maps API key and Gemini API key here (or leave blank for demo mode)
   const GOOGLE_MAPS_API_KEY = '';   // e.g. 'AIzaSy...'
-  const GEMINI_API_KEY      = '';   // e.g. 'AIzaSy...'
+  const GEMINI_API_KEY      = 'AQ.Ab8RN6I6vLffpwl2KhFp0sDivc3W8hvfwL4pWfbq-B-LnEgRjg';   // e.g. 'AIzaSy...'
 
   // ── DUMMY DATA ──────────────────────────────────────────
   const SHUTTER_TYPES = [
@@ -928,7 +928,7 @@
     list.innerHTML = openings.map((o,idx) => {
       const t = SHUTTER_TYPES.find(t => t.id === o.typeId) || SHUTTER_TYPES[0];
       const typeOptions = SHUTTER_TYPES.map(st =>
-        `<option value="${st.id}" ${st.id===o.typeId?'selected':''}>${st.name} — SAR ${st.pricePerM2}/m²</option>`
+        `<option value="${st.id}" ${st.id===o.typeId?'selected':''}>${st.name} — EGP ${st.pricePerM2}/m²</option>`
       ).join('');
       return `
       <div class="opening-card mb-3" id="oc-${o.id}">
@@ -979,7 +979,7 @@
             </div>
             <div class="col-4">
               <div class="stat-box">
-                <div class="stat-val price-badge" style="font-size:.85rem;">SAR ${o.price.toFixed(2)}</div>
+                <div class="stat-val price-badge" style="font-size:.85rem;">EGP ${o.price.toFixed(2)}</div>
                 <div class="stat-lbl">Shutter Price</div>
               </div>
             </div>
@@ -1001,7 +1001,7 @@
 
   function updateShutterTotal() {
     const total = openings.reduce((s,o) => s+o.price, 0);
-    document.getElementById('shutterTotalVal').textContent = `SAR ${total.toFixed(2)}`;
+    document.getElementById('shutterTotalVal').textContent = `EGP ${total.toFixed(2)}`;
     document.getElementById('shutterCount').textContent = `${openings.length} opening${openings.length!==1?'s':''}`;
   }
 
@@ -1047,7 +1047,7 @@
           <div class="mo-name"><i class="bi bi-gear me-1"></i>${m.name}</div>
           <div class="mo-detail">${m.brand} · ${m.power}</div>
         </div>
-        <div class="mo-price">SAR ${m.price.toLocaleString()}</div>
+        <div class="mo-price">EGP ${m.price.toLocaleString()}</div>
       </div>
     </div>`;
   }
@@ -1062,7 +1062,7 @@
       const m = MOTORS.find(m => m.id === o.motorId);
       return s + (m ? m.price : 0);
     }, 0);
-    document.getElementById('motorTotalVal').textContent = `SAR ${total.toFixed(2)}`;
+    document.getElementById('motorTotalVal').textContent = `EGP ${total.toFixed(2)}`;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1101,7 +1101,7 @@
           <div class="mo-name"><i class="bi bi-${icon} me-1"></i>${c.name}</div>
           ${c.desc ? `<div class="mo-detail">${c.desc}</div>` : ''}
         </div>
-        <div class="mo-price">${c.price === 0 ? '<span class="text-muted fw-normal">—</span>' : `SAR ${c.price.toLocaleString()}`}</div>
+        <div class="mo-price">${c.price === 0 ? '<span class="text-muted fw-normal">—</span>' : `EGP ${c.price.toLocaleString()}`}</div>
       </div>
     </div>`;
   }
@@ -1116,7 +1116,7 @@
       const c = CONTROLLERS.find(c => c.id === o.controllerId);
       return s + (c ? c.price : 0);
     }, 0);
-    document.getElementById('ctrlTotalVal').textContent = `SAR ${total.toFixed(2)}`;
+    document.getElementById('ctrlTotalVal').textContent = `EGP ${total.toFixed(2)}`;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1151,9 +1151,9 @@
       <div class="col-md-6">
         <div class="summary-section">
           <div class="sec-head"><i class="bi bi-calculator me-1"></i>Price Breakdown</div>
-          <div class="summary-row"><span class="sr-label">Shutters (${openings.length} openings)</span><span class="sr-value">SAR ${shutterTotal.toFixed(2)}</span></div>
-          <div class="summary-row"><span class="sr-label">Motors</span><span class="sr-value">SAR ${motorTotal.toFixed(2)}</span></div>
-          <div class="summary-row"><span class="sr-label">Controllers</span><span class="sr-value">SAR ${ctrlTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span class="sr-label">Shutters (${openings.length} openings)</span><span class="sr-value">EGP ${shutterTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span class="sr-label">Motors</span><span class="sr-value">EGP ${motorTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span class="sr-label">Controllers</span><span class="sr-value">EGP ${ctrlTotal.toFixed(2)}</span></div>
         </div>
       </div>
     </div>`;
@@ -1169,7 +1169,7 @@
         return `<div class="summary-row flex-column align-items-start py-2 px-3" style="gap:.2rem;">
           <div class="d-flex justify-content-between w-100">
             <strong style="color:var(--brand-primary);">Opening #${i+1}</strong>
-            <span class="price-badge" style="font-size:.82rem;">SAR ${lineTotal.toFixed(2)}</span>
+            <span class="price-badge" style="font-size:.82rem;">EGP ${lineTotal.toFixed(2)}</span>
           </div>
           <div style="font-size:.82rem;color:var(--brand-muted);">
             ${t?.name||''} &nbsp;|&nbsp; ${o.width}×${o.height} cm &nbsp;|&nbsp; ${o.area.toFixed(2)} m² &nbsp;|&nbsp; ${o.weight} kg
@@ -1183,7 +1183,7 @@
     </div>`;
 
     document.getElementById('summaryContent').innerHTML = html;
-    document.getElementById('grandTotalVal').textContent = `SAR ${grand.toFixed(2)}`;
+    document.getElementById('grandTotalVal').textContent = `EGP ${grand.toFixed(2)}`;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1200,7 +1200,7 @@
       const t = SHUTTER_TYPES.find(t=>t.id===o.typeId);
       const m = MOTORS.find(m=>m.id===o.motorId);
       const c = CONTROLLERS.find(c=>c.id===o.controllerId);
-      return `Opening ${i+1}: ${t?.name}, ${o.width}x${o.height}cm (${o.area.toFixed(2)} m², ${o.weight} kg) – Shutter: SAR ${o.price.toFixed(2)} | Motor: ${m?`${m.name} (SAR ${m.price})`:'None'} | Controller: ${c&&c.price>0?`${c.name} (SAR ${c.price})`:'None'}`;
+      return `Opening ${i+1}: ${t?.name}, ${o.width}x${o.height}cm (${o.area.toFixed(2)} m², ${o.weight} kg) – Shutter: EGP ${o.price.toFixed(2)} | Motor: ${m?`${m.name} (EGP ${m.price})`:'None'} | Controller: ${c&&c.price>0?`${c.name} (EGP ${c.price})`:'None'}`;
     }).join('\n');
 
     const prompt = `You are a professional sales quotation writer for a premium shutter, motor and controller company. Write a polished, friendly, and professional quotation message for the following client:
@@ -1215,10 +1215,10 @@ QUOTATION BREAKDOWN:
 ${openingsSummary}
 
 FINANCIAL SUMMARY:
-- Shutter Total: SAR ${shutterTotal.toFixed(2)}
-- Motor Total:   SAR ${motorTotal.toFixed(2)}
-- Controller Total: SAR ${ctrlTotal.toFixed(2)}
-- GRAND TOTAL:   SAR ${grand.toFixed(2)}
+- Shutter Total: EGP ${shutterTotal.toFixed(2)}
+- Motor Total:   EGP ${motorTotal.toFixed(2)}
+- Controller Total: EGP ${ctrlTotal.toFixed(2)}
+- GRAND TOTAL:   EGP ${grand.toFixed(2)}
 
 ${notes ? `SPECIAL NOTES FROM SALESPERSON:\n${notes}` : ''}
 
@@ -1292,11 +1292,11 @@ ${openingsSummary}
 
 💰 INVESTMENT SUMMARY
 ━━━━━━━━━━━━━━━━━━━━━
-• Shutter Systems:    SAR ${shutterTotal.toFixed(2)}
-• Motor Package:      SAR ${motorTotal.toFixed(2)}
-• Controller Suite:   SAR ${ctrlTotal.toFixed(2)}
+• Shutter Systems:    EGP ${shutterTotal.toFixed(2)}
+• Motor Package:      EGP ${motorTotal.toFixed(2)}
+• Controller Suite:   EGP ${ctrlTotal.toFixed(2)}
 ━━━━━━━━━━━━━━━━━━━━━
-  TOTAL (VAT Excl.):  SAR ${grand.toFixed(2)}
+  TOTAL (VAT Excl.):  EGP ${grand.toFixed(2)}
 
 ⭐ WHY THIS IS A GREAT CHOICE FOR YOU
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1308,9 +1308,9 @@ ${openingsSummary}
 
 💡 OUR EXPERT RECOMMENDATIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Smart Home Upgrade: Consider adding our Wi-Fi Smart Module to enable voice control via Alexa or Google Home — an upgrade of just SAR 890 per opening that transforms your home experience.
+1. Smart Home Upgrade: Consider adding our Wi-Fi Smart Module to enable voice control via Alexa or Google Home — an upgrade of just EGP 890 per opening that transforms your home experience.
 
-2. Annual Maintenance Plan: Our comprehensive maintenance package (SAR 1,200/year) ensures peak performance, covers all service visits, and extends motor warranty to 5 years.
+2. Annual Maintenance Plan: Our comprehensive maintenance package (EGP 1,200/year) ensures peak performance, covers all service visits, and extends motor warranty to 5 years.
 
 3. Sun Sensor Add-On: Automate your shutters based on sunlight intensity — they close automatically during peak heat hours, saving you energy year-round.
 
@@ -1388,29 +1388,29 @@ www.shutterquote.pro`;
               <td>${o.weight} kg</td>
               <td>${m?m.name:'None'}</td>
               <td>${c&&c.price?c.name:'None'}</td>
-              <td style="text-align:right;font-weight:700;">SAR ${lineTotal.toFixed(2)}</td>
+              <td style="text-align:right;font-weight:700;">EGP ${lineTotal.toFixed(2)}</td>
             </tr>`;
           }).join('')}
         </tbody>
         <tfoot>
           <tr style="background:#f0f4f8;">
             <td colspan="7" style="text-align:right;font-weight:700;padding:.5rem .8rem;">Shutters Subtotal</td>
-            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">SAR ${shutterTotal.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">EGP ${shutterTotal.toFixed(2)}</td>
           </tr>
           <tr style="background:#f0f4f8;">
             <td colspan="7" style="text-align:right;font-weight:700;padding:.5rem .8rem;">Motors Subtotal</td>
-            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">SAR ${motorTotal.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">EGP ${motorTotal.toFixed(2)}</td>
           </tr>
           <tr style="background:#f0f4f8;">
             <td colspan="7" style="text-align:right;font-weight:700;padding:.5rem .8rem;">Controllers Subtotal</td>
-            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">SAR ${ctrlTotal.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;padding:.5rem .8rem;">EGP ${ctrlTotal.toFixed(2)}</td>
           </tr>
         </tfoot>
       </table>
 
       <div class="pdf-total">
         <span>GRAND TOTAL (VAT Exclusive)</span>
-        <span>SAR ${grand.toFixed(2)}</span>
+        <span>EGP ${grand.toFixed(2)}</span>
       </div>
 
       ${geminiText ? `
@@ -1419,7 +1419,7 @@ www.shutterquote.pro`;
       ` : ''}
 
       <div style="margin-top:1.5rem;font-size:.75rem;color:#999;text-align:center;border-top:1px solid #edf2f7;padding-top:.8rem;">
-        This quotation was generated by ShutterQuote Pro · Valid for 30 days from ${date} · All prices in SAR (Saudi Riyal) · VAT not included
+        This quotation was generated by ShutterQuote Pro · Valid for 30 days from ${date} · All prices in EGP (Saudi Riyal) · VAT not included
       </div>
     `;
 
